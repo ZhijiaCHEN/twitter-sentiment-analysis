@@ -1,3 +1,4 @@
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -69,13 +70,18 @@ WORD2VEC_MODEL = "model.w2v"
 TOKENIZER_MODEL = "tokenizer.pkl"
 ENCODER_MODEL = "encoder.pkl"
 
-USE_CONTEXT = True
+if sys.argv[1] == '1':
+    USE_CONTEXT = True
+    print('Use context vectors.')
+else:
+    print('Use word vectors.')
+    USE_CONTEXT = False
 
 dataset_filename = os.listdir("input")[0]
 dataset_path = os.path.join("input",dataset_filename)
-print("Open file:", dataset_path)
+# print("Open file:", dataset_path)
 df = pd.read_csv(dataset_path, encoding =DATASET_ENCODING , names=DATASET_COLUMNS)
-print("Dataset size:", len(df))
+# print("Dataset size:", len(df))
 
 decode_map = {0: "NEGATIVE", 2: "NEUTRAL", 4: "POSITIVE"}
 def decode_sentiment(label):
@@ -101,8 +107,6 @@ def preprocess(text, stem=False):
 
 df.text = df.text.apply(lambda x: preprocess(x))
 df_train, df_test = train_test_split(df, test_size=1-TRAIN_SIZE, random_state=42)
-print("TRAIN size:", len(df_train))
-print("TEST size:", len(df_test))
 
 if os.path.exists(WORD2VEC_MODEL):
     w2v_model = gensim.models.word2vec.Word2Vec.load(WORD2VEC_MODEL)
@@ -115,16 +119,13 @@ else:
     w2v_model.build_vocab(documents)
     words = w2v_model.wv.vocab.keys()
     vocab_size = len(words)
-    print("Vocab size", vocab_size)
     w2v_model.train(documents, total_examples=len(documents), epochs=W2V_EPOCH)
-    print(w2v_model.most_similar("love"))
     w2v_model.save('w2v.model')
     
 tokenizer = Tokenizer()
 tokenizer.fit_on_texts(df_train.text)
 
 vocab_size = len(tokenizer.word_index) + 1
-print("Total words", vocab_size)
 
 x_train = pad_sequences(tokenizer.texts_to_sequences(df_train.text), maxlen=SEQUENCE_LENGTH)
 x_test = pad_sequences(tokenizer.texts_to_sequences(df_test.text), maxlen=SEQUENCE_LENGTH)
@@ -140,14 +141,14 @@ y_test = encoder.transform(df_test.target.tolist())
 y_train = y_train.reshape(-1,1)
 y_test = y_test.reshape(-1,1)
 
-print("y_train",y_train.shape)
-print("y_test",y_test.shape)
+# print("y_train",y_train.shape)
+# print("y_test",y_test.shape)
 
-print("x_train", x_train.shape)
-print("y_train", y_train.shape)
-print()
-print("x_test", x_test.shape)
-print("y_test", y_test.shape)
+# print("x_train", x_train.shape)
+# print("y_train", y_train.shape)
+# print()
+# print("x_test", x_test.shape)
+# print("y_test", y_test.shape)
 
 embedding_matrix = np.zeros((vocab_size, W2V_SIZE))
 for word, i in tokenizer.word_index.items():
@@ -157,7 +158,6 @@ for word, i in tokenizer.word_index.items():
             embedding_matrix[i] = w2v_model.syn1neg[wordIdx]
         else:
             embedding_matrix[i] = w2v_model.wv[word]
-print(embedding_matrix.shape)
 
 embedding_layer = Embedding(vocab_size, W2V_SIZE, weights=[embedding_matrix], input_length=SEQUENCE_LENGTH, trainable=False)
 
@@ -184,18 +184,17 @@ history = model.fit(x_train, y_train,
                     callbacks=callbacks)
 
 score = model.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
-print()
 print("ACCURACY:",score[1])
 print("LOSS:",score[0])
 with open('score.log', 'a') as f:
-    f.write("ACCURACY: {}\n".format(score[1]))
+    f.write("ACCURACY: {}\n".format(str(score[1])))
 
 y_pred_1d = []
 y_test_1d = list(df_test.target)
 scores = model.predict(x_test, verbose=1, batch_size=8000)
 y_pred_1d = [decode_sentiment(score, include_neutral=False) for score in scores]
 with open('score.log', 'a') as f:
-    f.write("ACCURACY: {}\n".format(score[1]))
-    f.write("Classification report: " + str(classification_report(y_test_1d, y_pred_1d)) + "\n")
-    f.write("Accuracy score: " + str(accuracy_score(y_test_1d, y_pred_1d)) + "\n")
+    f.write("\t ACCURACY: {}\n".format(str(score[1])))
+    f.write("\t Classification report: " + str(classification_report(y_test_1d, y_pred_1d)) + "\n")
+    f.write("\t Accuracy score: " + str(accuracy_score(y_test_1d, y_pred_1d)) + "\n")
 
