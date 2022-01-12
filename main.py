@@ -70,7 +70,7 @@ WORD2VEC_MODEL = "model.w2v"
 TOKENIZER_MODEL = "tokenizer.pkl"
 ENCODER_MODEL = "encoder.pkl"
 
-if sys.argv[1] == '1':
+if len(sys.argv) > 1 and sys.argv[1] == '1':
     USE_CONTEXT = True
     print('Use context vectors.')
 else:
