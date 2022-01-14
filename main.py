@@ -73,13 +73,6 @@ if not os.path.exists(COIN_PATH):
 with open(COIN_PATH, 'rb') as f:
     coinVec = pickle.load(f)
 
-if len(sys.argv) > 1 and sys.argv[1] == '1':
-    USE_CONTEXT = True
-    print('Use context vectors.')
-else:
-    print('Use word vectors.')
-    USE_CONTEXT = False
-
 dataset_filename = os.listdir("input")[0]
 dataset_path = os.path.join("input",dataset_filename)
 
