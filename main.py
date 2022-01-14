@@ -134,8 +134,9 @@ embedding_layer = Embedding(vocab_size, W2V_SIZE, weights=[embedding_matrix], in
 
 model = Sequential()
 model.add(embedding_layer)
-model.add(Dropout(0.5))
+model.add(Dropout(0.3))
 model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
+model.add(Dense(32, activation='relu'))
 model.add(Dense(1, activation='sigmoid'))
 
 model.summary()
