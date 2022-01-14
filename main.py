@@ -81,6 +81,7 @@ def decode_sentiment(label):
     return decode_map[int(label)]
 
 df_train = pd.read_csv(NO_OOV_DATASET, encoding =DATASET_ENCODING , names=DATASET_COLUMNS)#[:1000]
+df_train = df_train.sample(frac=1).reset_index(drop=True)
 df_test = pd.read_csv(OOV_DATASET, encoding =DATASET_ENCODING , names=DATASET_COLUMNS+OOV_AUX_COLUMNS)#[:1000]
 w2v_model = gensim.models.word2vec.Word2Vec.load(WORD2VEC_MODEL)
 tokenizer = Tokenizer()
