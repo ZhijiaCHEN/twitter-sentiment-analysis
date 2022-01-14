@@ -17,11 +17,6 @@ from keras.layers import Activation, Dense, Dropout, Embedding, Flatten, Conv1D,
 from keras import utils
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping
 
-# nltk
-import nltk
-from nltk.corpus import stopwords
-from nltk.stem import SnowballStemmer
-
 # Word2vec
 import gensim
 
@@ -35,12 +30,14 @@ import time
 import pickle
 import itertools
 
+from preprocess import build_coin, WIN_SIZE, OOV_DATASET, NO_OOV_DATASET
+
 # Set log
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-nltk.download('stopwords')
 
 # DATASET
 DATASET_COLUMNS = ["target", "ids", "date", "flag", "user", "text"]
+OOV_AUX_COLUMNS = ['win' + str(w) for w in WIN_SIZE]
 DATASET_ENCODING = "ISO-8859-1"
 TRAIN_SIZE = 0.8
 
@@ -48,7 +45,7 @@ TRAIN_SIZE = 0.8
 TEXT_CLEANING_RE = "@\S+|https?:\S+|http?:\S|[^A-Za-z0-9]+"
 
 # WORD2VEC 
-W2V_SIZE = 300
+W2V_SIZE = 400
 W2V_WINDOW = 7
 W2V_EPOCH = 32
 W2V_MIN_COUNT = 10
@@ -66,9 +63,15 @@ SENTIMENT_THRESHOLDS = (0.4, 0.7)
 
 # EXPORT
 KERAS_MODEL = "model.h5"
-WORD2VEC_MODEL = "model.w2v"
+WORD2VEC_MODEL = "../wiki_all.model/wiki_all.sent.split.model"
 TOKENIZER_MODEL = "tokenizer.pkl"
 ENCODER_MODEL = "encoder.pkl"
+
+COIN_PATH = 'COIN.pickle'
+if not os.path.exists(COIN_PATH):
+    build_coin()
+with open(COIN_PATH, 'rb') as f:
+    coinVec = pickle.load(f)
 
 if len(sys.argv) > 1 and sys.argv[1] == '1':
     USE_CONTEXT = True
@@ -79,56 +82,24 @@ else:
 
 dataset_filename = os.listdir("input")[0]
 dataset_path = os.path.join("input",dataset_filename)
-# print("Open file:", dataset_path)
-df = pd.read_csv(dataset_path, encoding =DATASET_ENCODING , names=DATASET_COLUMNS)
-# print("Dataset size:", len(df))
 
 decode_map = {0: "NEGATIVE", 2: "NEUTRAL", 4: "POSITIVE"}
 def decode_sentiment(label):
     return decode_map[int(label)]
 
-df.target = df.target.apply(lambda x: decode_sentiment(x))
-target_cnt = Counter(df.target)
-
-stop_words = stopwords.words("english")
-stemmer = SnowballStemmer("english")
-
-def preprocess(text, stem=False):
-    # Remove link,user and special characters
-    text = re.sub(TEXT_CLEANING_RE, ' ', str(text).lower()).strip()
-    tokens = []
-    for token in text.split():
-        if token not in stop_words:
-            if stem:
-                tokens.append(stemmer.stem(token))
-            else:
-                tokens.append(token)
-    return " ".join(tokens)
-
-df.text = df.text.apply(lambda x: preprocess(x))
-df_train, df_test = train_test_split(df, test_size=1-TRAIN_SIZE, random_state=42)
-
-if os.path.exists(WORD2VEC_MODEL):
-    w2v_model = gensim.models.word2vec.Word2Vec.load(WORD2VEC_MODEL)
-else:
-    documents = [_text.split() for _text in df_train.text]
-    w2v_model = gensim.models.word2vec.Word2Vec(size=W2V_SIZE, 
-                                                window=W2V_WINDOW, 
-                                                min_count=W2V_MIN_COUNT, 
-                                                workers=8)
-    w2v_model.build_vocab(documents)
-    words = w2v_model.wv.vocab.keys()
-    vocab_size = len(words)
-    w2v_model.train(documents, total_examples=len(documents), epochs=W2V_EPOCH)
-    w2v_model.save('w2v.model')
-    
+df_train = pd.read_csv(NO_OOV_DATASET, encoding =DATASET_ENCODING , names=DATASET_COLUMNS)#[:1000]
+df_test = pd.read_csv(OOV_DATASET, encoding =DATASET_ENCODING , names=DATASET_COLUMNS+OOV_AUX_COLUMNS)#[:1000]
+w2v_model = gensim.models.word2vec.Word2Vec.load(WORD2VEC_MODEL)
 tokenizer = Tokenizer()
 tokenizer.fit_on_texts(df_train.text)
-
+for col in OOV_AUX_COLUMNS:
+    tokenizer.fit_on_texts(df_test[col])
+    
 vocab_size = len(tokenizer.word_index) + 1
 
 x_train = pad_sequences(tokenizer.texts_to_sequences(df_train.text), maxlen=SEQUENCE_LENGTH)
 x_test = pad_sequences(tokenizer.texts_to_sequences(df_test.text), maxlen=SEQUENCE_LENGTH)
+x_test_coin = [pad_sequences(tokenizer.texts_to_sequences(df_test[col]), maxlen=SEQUENCE_LENGTH) for col in OOV_AUX_COLUMNS]
 labels = df_train.target.unique().tolist()
 labels.append(NEUTRAL)
 
@@ -153,11 +124,17 @@ y_test = y_test.reshape(-1,1)
 embedding_matrix = np.zeros((vocab_size, W2V_SIZE))
 for word, i in tokenizer.word_index.items():
     if word in w2v_model.wv:
-        if USE_CONTEXT:
-            wordIdx = w2v_model.wv.key_to_index[word]
-            embedding_matrix[i] = w2v_model.syn1neg[wordIdx]
-        else:
-            embedding_matrix[i] = w2v_model.wv[word]
+        embedding_matrix[i] = w2v_model.wv[word]
+    else:
+        # word is an oov term, use its coin vector
+        if '_' not in word:
+            continue
+        word, win = word.split('_')
+        if word not in coinVec:
+            logging.warning(f'Missing oov term {word} in COIN vectors.')
+            continue
+        win = int(win)
+        embedding_matrix[i] = coinVec[word][win]
 
 embedding_layer = Embedding(vocab_size, W2V_SIZE, weights=[embedding_matrix], input_length=SEQUENCE_LENGTH, trainable=False)
 
@@ -182,19 +159,27 @@ history = model.fit(x_train, y_train,
                     validation_split=0.1,
                     verbose=1,
                     callbacks=callbacks)
-
-score = model.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
-print("ACCURACY:",score[1])
-print("LOSS:",score[0])
 with open('score.log', 'a') as f:
-    f.write("ACCURACY: {}\n".format(str(score[1])))
+    score = model.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
+    f.write("Baseline accuracy: {:.4f}\n".format(score[1]))
+    logging.info("Baseline accuracy: {:.4f}\n".format(score[1]))
+    for col, x_test in zip(OOV_AUX_COLUMNS, x_test_coin):
+        score = model.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
+        f.write("{} accuracy: {:.4f}\n".format(col, score[1]))
+        logging.info("{} accuracy: {:.4f}\n".format(col, score[1]))
 
-y_pred_1d = []
-y_test_1d = list(df_test.target)
-scores = model.predict(x_test, verbose=1, batch_size=8000)
-y_pred_1d = [decode_sentiment(score, include_neutral=False) for score in scores]
-with open('score.log', 'a') as f:
-    f.write("\t ACCURACY: {}\n".format(str(score[1])))
-    f.write("\t Classification report: " + str(classification_report(y_test_1d, y_pred_1d)) + "\n")
-    f.write("\t Accuracy score: " + str(accuracy_score(y_test_1d, y_pred_1d)) + "\n")
+model.save(KERAS_MODEL)
+pickle.dump(tokenizer, open(TOKENIZER_MODEL, "wb"), protocol=0)
+pickle.dump(encoder, open(ENCODER_MODEL, "wb"), protocol=0)
+
+
+
+# y_pred_1d = []
+# y_test_1d = list(df_test.target)
+# scores = model.predict(x_test, verbose=1, batch_size=8000)
+# y_pred_1d = [decode_sentiment(score, include_neutral=False) for score in scores]
+# with open('score.log', 'a') as f:
+#     f.write("\t ACCURACY: {}\n".format(score[1]))
+#     f.write("\t Classification report: " + str(classification_report(y_test_1d, y_pred_1d)) + "\n")
+#     f.write("\t Accuracy score: " + str(accuracy_score(y_test_1d, y_pred_1d)) + "\n")
 
