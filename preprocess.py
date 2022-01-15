@@ -16,9 +16,9 @@ TEXT_CLEANING_RE = "@\S+|https?:\S+|http?:\S|[^A-Za-z0-9]+"
 DATASET_COLUMNS = ["target", "ids", "date", "flag", "user", "text"]
 DATASET_ENCODING = "ISO-8859-1"
 WORD2VEC_MODEL = "../wiki_all.model/wiki_all.sent.split.model"
-NO_OOV_DATASET = os.path.join('input', 'noov.csv')
-OOV_DATASET = os.path.join('input', 'oov.csv')
-WIN_SIZE = list(range(5,17,2))
+NO_OOV_DATASET = os.path.join('input', 'twitter', 'noov.csv')
+OOV_DATASET = os.path.join('input', 'twitter', 'oov.csv')
+WIN_SIZE = list(range(3,17,2))
 
 W2V_SIZE = 400
 dataset_filename = 'training.1600000.processed.noemoticon.csv'
@@ -39,7 +39,7 @@ def preprocess(text, stem=False):
                 tokens.append(token)
     return " ".join(tokens).strip()
 
-CLEANED_DATASET_PATH = os.path.join('input', 'cleaned.csv')
+CLEANED_DATASET_PATH = os.path.join('input', 'twitter', 'cleaned.csv')
 
 def build_coin():
     w2v_model = gensim.models.word2vec.Word2Vec.load(WORD2VEC_MODEL)
@@ -84,7 +84,7 @@ def build_coin():
                         l.append(word)
             ret = [' '.join(l) for l in ret]
             return ret
-        oov['win5'], oov['win7'], oov['win9'], oov['win11'], oov['win13'], oov['win15'] = zip(*oov['text'].map(oov_aux_postfix))
+        oov['win3'], oov['win5'], oov['win7'], oov['win9'], oov['win11'], oov['win13'], oov['win15'] = zip(*oov['text'].map(oov_aux_postfix))
         noov.to_csv(NO_OOV_DATASET, index=False, header=False)
         oov.to_csv(OOV_DATASET, index=False, header=False)
     else:
