@@ -21,3 +21,163 @@ win9 accuracy: 0.7600
 win11 accuracy: 0.7601
 win13 accuracy: 0.7596
 win15 accuracy: 0.7595
+
+Baseline accuracy: 0.8203
+win5 accuracy: 0.8209
+win7 accuracy: 0.8166
+win9 accuracy: 0.8171
+win11 accuracy: 0.8170
+win13 accuracy: 0.8179
+win15 accuracy: 0.8182
+
+Baseline accuracy: 0.8069
+win5 accuracy: 0.8038
+	 Classification report: 
+              precision    recall  f1-score   support
+
+           0       0.75      0.94      0.83      7047
+           1       0.91      0.66      0.76      6596
+
+    accuracy                           0.80     13643
+   macro avg       0.83      0.80      0.80     13643
+weighted avg       0.83      0.80      0.80     13643
+
+
+win7 accuracy: 0.8090
+	 Classification report: 
+              precision    recall  f1-score   support
+
+           0       0.76      0.93      0.83      7047
+           1       0.90      0.68      0.78      6596
+
+    accuracy                           0.81     13643
+   macro avg       0.83      0.80      0.80     13643
+weighted avg       0.83      0.81      0.81     13643
+
+
+win9 accuracy: 0.8071
+	 Classification report: 
+              precision    recall  f1-score   support
+
+           0       0.75      0.93      0.83      7047
+           1       0.90      0.68      0.77      6596
+
+    accuracy                           0.81     13643
+   macro avg       0.83      0.80      0.80     13643
+weighted avg       0.82      0.81      0.80     13643
+
+
+win11 accuracy: 0.8079
+	 Classification report: 
+              precision    recall  f1-score   support
+
+           0       0.76      0.93      0.83      7047
+           1       0.90      0.68      0.77      6596
+
+    accuracy                           0.81     13643
+   macro avg       0.83      0.80      0.80     13643
+weighted avg       0.83      0.81      0.80     13643
+
+
+win13 accuracy: 0.8086
+	 Classification report: 
+              precision    recall  f1-score   support
+
+           0       0.76      0.93      0.83      7047
+           1       0.90      0.68      0.77      6596
+
+    accuracy                           0.81     13643
+   macro avg       0.83      0.80      0.80     13643
+weighted avg       0.83      0.81      0.81     13643
+
+
+win15 accuracy: 0.8071
+	 Classification report: 
+              precision    recall  f1-score   support
+
+           0       0.75      0.93      0.83      7047
+           1       0.90      0.68      0.77      6596
+
+    accuracy                           0.81     13643
+   macro avg       0.83      0.80      0.80     13643
+weighted avg       0.82      0.81      0.80     13643
+
+
+Baseline accuracy: 0.8176
+win5 accuracy: 0.8181
+	 Classification report: 
+              precision    recall  f1-score   support
+
+           0       0.87      0.76      0.81      7047
+           1       0.78      0.88      0.82      6596
+
+    accuracy                           0.82     13643
+   macro avg       0.82      0.82      0.82     13643
+weighted avg       0.82      0.82      0.82     13643
+
+9 epochs
+----------------------------
+Baseline accuracy: 0.7970
+win5 accuracy: 0.7890
+Baseline accuracy: 0.8108
+win5 accuracy: 0.8091
+Baseline accuracy: 0.7913
+win5 accuracy: 0.7948
+Baseline accuracy: 0.8057
+win5 accuracy: 0.7995
+Baseline accuracy: 0.7825
+win5 accuracy: 0.7776
+Baseline accuracy: 0.8155
+win5 accuracy: 0.8127
+
+12 epochs
+-------------------------------------
+Baseline accuracy: 0.8265
+win5 accuracy: 0.8252
+Baseline accuracy: 0.8414
+win5 accuracy: 0.8407
+Baseline accuracy: 0.8297
+win5 accuracy: 0.8231
+Baseline accuracy: 0.8393
+win5 accuracy: 0.8396
+Baseline accuracy: 0.8360
+win5 accuracy: 0.8313
+Baseline accuracy: 0.7971
+win5 accuracy: 0.7913
+Baseline accuracy: 0.8408
+win5 accuracy: 0.8402
+Baseline accuracy: 0.8232
+win5 accuracy: 0.8262
+Baseline accuracy: 0.8323
+win5 accuracy: 0.8329
+Baseline accuracy: 0.8167
+win5 accuracy: 0.8129
+Baseline accuracy: 0.8364
+win5 accuracy: 0.8371
+Baseline accuracy: 0.8324
+win5 accuracy: 0.8360
+Baseline accuracy: 0.8358
+win5 accuracy: 0.8340
+Baseline accuracy: 0.7827
+win5 accuracy: 0.7777
+--------------------------
+Baseline accuracy: 0.8353
+win5 accuracy: 0.8353
+Baseline accuracy: 0.8268
+win5 accuracy: 0.8306
+Baseline accuracy: 0.8107
+win5 accuracy: 0.8129
+Baseline accuracy: 0.8305
+win5 accuracy: 0.8332
+Baseline accuracy: 0.8291
+win5 accuracy: 0.8313
+Baseline accuracy: 0.8076
+win5 accuracy: 0.8059
+Baseline accuracy: 0.8203
+win5 accuracy: 0.8221
+Baseline accuracy: 0.8286
+win5 accuracy: 0.8263
+Baseline accuracy: 0.8091
+win5 accuracy: 0.8121
+Baseline accuracy: 0.8306
+win5 accuracy: 0.8327

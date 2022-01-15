@@ -30,7 +30,7 @@ import time
 import pickle
 import itertools
 
-from preprocess import build_coin, WIN_SIZE, OOV_DATASET, NO_OOV_DATASET
+from preprocess import WIN_SIZE, IMDB_COIN_PATH, IMDB_NO_OOV_DATASET, IMDB_OOV_DATASET
 
 # Set log
 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
@@ -52,7 +52,7 @@ W2V_MIN_COUNT = 10
 
 # KERAS
 SEQUENCE_LENGTH = 300
-EPOCHS = 8
+EPOCHS = 10
 BATCH_SIZE = 1024
 
 # SENTIMENT
@@ -67,24 +67,17 @@ WORD2VEC_MODEL = "../wiki_all.model/wiki_all.sent.split.model"
 TOKENIZER_MODEL = "tokenizer.pkl"
 ENCODER_MODEL = "encoder.pkl"
 
-COIN_PATH = 'COIN.pickle'
-if not os.path.exists(COIN_PATH):
-    build_coin()
-with open(COIN_PATH, 'rb') as f:
+with open(IMDB_COIN_PATH, 'rb') as f:
     coinVec = pickle.load(f)
 
 dataset_filename = os.listdir("input")[0]
 dataset_path = os.path.join("input",dataset_filename)
 
-decode_map = {0: "NEGATIVE", 2: "NEUTRAL", 4: "POSITIVE"}
-def decode_sentiment(label):
-    return decode_map[int(label)]
-
-df_train = pd.read_csv(NO_OOV_DATASET, encoding =DATASET_ENCODING , names=DATASET_COLUMNS)#[:1000]
+df_train = pd.read_csv(IMDB_NO_OOV_DATASET, encoding = 'utf-8')#[:1000]
 df_train = df_train.sample(frac=1).reset_index(drop=True)
-df_test = pd.read_csv(OOV_DATASET, encoding =DATASET_ENCODING , names=DATASET_COLUMNS+OOV_AUX_COLUMNS)#[:1000]
+df_test = pd.read_csv(IMDB_OOV_DATASET, encoding = 'utf-8')#[:1000]
 w2v_model = gensim.models.word2vec.Word2Vec.load(WORD2VEC_MODEL)
-tokenizer = Tokenizer()
+tokenizer = Tokenizer(filters='')
 tokenizer.fit_on_texts(df_train.text)
 for col in OOV_AUX_COLUMNS:
     tokenizer.fit_on_texts(df_test[col])
@@ -128,7 +121,8 @@ for word, i in tokenizer.word_index.items():
             logging.warning(f'Missing oov term {word} in COIN vectors.')
             continue
         win = int(win)
-        embedding_matrix[i] = coinVec[word][win]
+        if win in coinVec[word]:
+            embedding_matrix[i] = coinVec[word][win]
 
 embedding_layer = Embedding(vocab_size, W2V_SIZE, weights=[embedding_matrix], input_length=SEQUENCE_LENGTH, trainable=False)
 
@@ -158,23 +152,17 @@ with open('score.log', 'a') as f:
     score = model.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
     f.write("Baseline accuracy: {:.4f}\n".format(score[1]))
     logging.info("Baseline accuracy: {:.4f}\n".format(score[1]))
-    for col, x_test in zip(OOV_AUX_COLUMNS, x_test_coin):
-        score = model.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
-        f.write("{} accuracy: {:.4f}\n".format(col, score[1]))
-        logging.info("{} accuracy: {:.4f}\n".format(col, score[1]))
+    score = model.evaluate(x_test_coin[0], y_test, batch_size=BATCH_SIZE)
+    f.write("win5 accuracy: {:.4f}\n".format(score[1]))
+    logging.info("win5 accuracy: {:.4f}\n".format(score[1]))
+    # for col, x_test in zip(OOV_AUX_COLUMNS, x_test_coin):
+    #     score = model.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
+    #     f.write("{} accuracy: {:.4f}\n".format(col, score[1]))
+    #     # y_test_1d = list(df_test.target)
+    #     # y_pred_1d = [1 if x >= 0.5 else 0 for x in model.predict(x_test)]
+    #     # f.write("\t Classification report: \n" + classification_report(y_test_1d, y_pred_1d) + "\n\n")
+    #     logging.info("{} accuracy: {:.4f}\n".format(col, score[1]))
 
-model.save(KERAS_MODEL)
-pickle.dump(tokenizer, open(TOKENIZER_MODEL, "wb"), protocol=0)
-pickle.dump(encoder, open(ENCODER_MODEL, "wb"), protocol=0)
-
-
-
-# y_pred_1d = []
-# y_test_1d = list(df_test.target)
-# scores = model.predict(x_test, verbose=1, batch_size=8000)
-# y_pred_1d = [decode_sentiment(score, include_neutral=False) for score in scores]
-# with open('score.log', 'a') as f:
-#     f.write("\t ACCURACY: {}\n".format(score[1]))
-#     f.write("\t Classification report: " + str(classification_report(y_test_1d, y_pred_1d)) + "\n")
-#     f.write("\t Accuracy score: " + str(accuracy_score(y_test_1d, y_pred_1d)) + "\n")
-
+# model.save(KERAS_MODEL)
+# pickle.dump(tokenizer, open(TOKENIZER_MODEL, "wb"), protocol=0)
+# pickle.dump(encoder, open(ENCODER_MODEL, "wb"), protocol=0)
