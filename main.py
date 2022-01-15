@@ -79,12 +79,15 @@ dataset_path = os.path.join("input",dataset_filename)
 decode_map = {0: "NEGATIVE", 2: "NEUTRAL", 4: "POSITIVE"}
 def decode_sentiment(label):
     return decode_map[int(label)]
-
-df_train = pd.read_csv(NO_OOV_DATASET, encoding =DATASET_ENCODING , names=DATASET_COLUMNS)#[:1000]
+DEBUG = False
+df_train = pd.read_csv(NO_OOV_DATASET, encoding =DATASET_ENCODING , names=DATASET_COLUMNS)
 df_train = df_train.sample(frac=1).reset_index(drop=True)
-df_test = pd.read_csv(OOV_DATASET, encoding =DATASET_ENCODING , names=DATASET_COLUMNS+OOV_AUX_COLUMNS)#[:1000]
+df_test = pd.read_csv(OOV_DATASET, encoding =DATASET_ENCODING , names=DATASET_COLUMNS+OOV_AUX_COLUMNS)
+if DEBUG:
+    df_train = df_train[:1000]
+    df_test = df_test.sample(frac=1).reset_index(drop=True)[:1000]
 w2v_model = gensim.models.word2vec.Word2Vec.load(WORD2VEC_MODEL)
-tokenizer = Tokenizer()
+tokenizer = Tokenizer(filters='')
 tokenizer.fit_on_texts(df_train.text)
 for col in OOV_AUX_COLUMNS:
     tokenizer.fit_on_texts(df_test[col])
@@ -128,7 +131,8 @@ for word, i in tokenizer.word_index.items():
             logging.warning(f'Missing oov term {word} in COIN vectors.')
             continue
         win = int(win)
-        embedding_matrix[i] = coinVec[word][win]
+        if win in coinVec[word]:
+            embedding_matrix[i] = coinVec[word][win]
 
 embedding_layer = Embedding(vocab_size, W2V_SIZE, weights=[embedding_matrix], input_length=SEQUENCE_LENGTH, trainable=False)
 
@@ -162,11 +166,6 @@ with open('score.log', 'a') as f:
         score = model.evaluate(x_test, y_test, batch_size=BATCH_SIZE)
         f.write("{} accuracy: {:.4f}\n".format(col, score[1]))
         logging.info("{} accuracy: {:.4f}\n".format(col, score[1]))
-
-model.save(KERAS_MODEL)
-pickle.dump(tokenizer, open(TOKENIZER_MODEL, "wb"), protocol=0)
-pickle.dump(encoder, open(ENCODER_MODEL, "wb"), protocol=0)
-
 
 
 # y_pred_1d = []
